@@ -1,6 +1,6 @@
 /* Simple program that opens, scans, and outputs the lines containing the word of interest
  * No pipe/IPC functionality -- simply a reference
- * Special cases such as whitespace may need to be checked
+ * TODO: Whitespace case needs to be checked, other cases are good
  * File is passed in via cmd line (argv[1])
  */
 #include <stdio.h>
@@ -17,7 +17,7 @@ int main(int argc, char **argv)
   scanf("%s", word);
   while(fp && fgets(tmp, sizeof(tmp), fp))  // fgets() -- get string from stream
   {
-    if (strstr(tmp, word))  // strstr() -- locates substring
+    if (strcasestr(tmp, word) || strcasecmp(tmp, word) == 0)  // strcasestr() -- locates substring ignoring case
       printf("%s", tmp);
   }
   fclose(fp);  // fclose() -- close the file stream
