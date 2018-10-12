@@ -1,0 +1,65 @@
+/* shmintro.c -- Intro to shared memory
+ * Basically the hello world for shared memory
+ * A pointer is created in shared memory and is passed from parent to child.
+ * The child writes to memory and the parent reads it.
+ * TODO: Figure out how to incorporate file, 4 threads/map-reduce
+ */
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/file.h>
+#include <sys/mman.h>
+#include <sys/wait.h>
+
+void error(const char *msg) {  // fn for detecting errors
+  perror(msg);
+  exit(EXIT_FAILURE);
+}
+
+int main(int argc, char* argv[]) {
+  int t;
+
+  const char *memname = "example";  // possibly incorporate file path here and / or line 27?
+  const size_t region_size = sysconf(_SC_PAGE_SIZE);  // configures size of mem
+
+  int fd = shm_open(memname, O_CREAT | O_TRUNC | O_RDWR, 0666);  // creates a new shared mem object with read/write access, returns a file descriptor
+  if (fd == -1)
+    error("shm_open");
+
+  t = ftruncate(fd, region_size);  // truncates a file to the size specified by the OS in sysconf()
+
+  if (t != 0)
+    error("ftruncate");
+  /* This ptr is what gets passed from parent to child!
+   * Incorporate the file here?
+   */
+  void *ptr = mmap(0, region_size, PROT_READ | PROT_WRITE | MAP_SHARED, fd, 0);  // mmap-- maps files into memory, returns a ptr for reading/writing bytes
+  if (ptr == MAP_FAILED)
+    error("mmap");
+  close(fd);
+
+  pid_t pid = fork();  // create a child process
+
+  if (pid == 0) {  // child
+    u_long *l = (u_long *) ptr;  // type cast to ptr above
+    *l = 0xdbeebee;  // some random data to be written
+    exit(0);
+  } else {  // parent
+    int status;
+    waitpid(pid, &status, 0);  // parent waits for the child to exit
+    printf("child wrote %#lx\n", *(u_long *) ptr);  // parent reads what child wrote
+  }
+
+  // Before parent can exit, shared memory must be freed and unlinked
+  t = munmap(ptr, region_size);
+  if (t != 0)
+    error("munmap");
+
+  t = shm_unlink(memname);
+  if (t != 0)
+    error("shm_unlink");
+
+  return 0;
+}
