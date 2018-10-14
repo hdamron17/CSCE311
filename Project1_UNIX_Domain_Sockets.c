@@ -10,20 +10,21 @@
 #include <sys/socket.h> //Beej
 #include <sys/wait.h> //Beej
 
-int main(void)
+int main(int argc, char **argv)
 {
-	int sv[2]; /* the pair of socket descriptors */
-	char buf; /* for data exchange between processes */
+	int socket[2];  //  Sockets
+	char buffer;  //  Buffer for interprocess data
+	FILE *fp;  //  Pointer for reading file
 
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, socket) == -1) {  //  Beej
 		perror("socketpair");
 		exit(1);
 	}
 
-	if (!fork()) {  /* child */
-		read(sv[1], &buf, 1);
-		printf("child: read '%c'\n", buf);
-		buf = toupper(buf);  /* make it uppercase */
+	if (!fork())
+	{
+		//  CHILD PROCESS
+		read(socket[1], &buffer, 1);
       
     const char word[80];  // word of interest in file
     printf("Enter the word of interest: ");
@@ -36,19 +37,21 @@ int main(void)
     }
     fclose(fp);  // fclose() -- close the file stream
 
-		write(sv[1], &buf, 1);
-		printf("child: sent '%c'\n", buf);
+		write(socket[1], &buffer, 1);
+		printf("child: sent '%c'\n", buffer);
 
-	} else { /* parent */
-		write(sv[0], "b", 1);
-		printf("parent: sent 'b'\n");
-
-    FILE *fp = fopen(argv[1], "r"); // takes file from cmd line
+	}
+	else
+	{
+		//  PARENT PROCESS
+    *fp = fopen(argv[1], "r"); // takes file from cmd line
     const char tmp[256] = { 0x0 };  // used to scan entire file
 
-		read(sv[0], &buf, 1);
-		printf("parent: read '%c'\n", buf);
-		wait(NULL); /* wait for child to die */
+		write(socket[0], "b", 1);  //  TODO: Change to write file info
+
+		read(socket[0], &buffer, 1);
+
+		wait(NULL);  //  Wait for child process completion
 	}
 
 	return 0;
