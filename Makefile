@@ -1,4 +1,3 @@
-BUILD:=$(CURDIR)/build
 BIN:=$(CURDIR)/bin
 SUBDIRS:=Part1 #Part2 Part3
 
@@ -11,6 +10,6 @@ mkdirs:
 	@mkdir -p $(BIN)
 
 clean:
-	@rm -rf $(BUILD) $(BIN)
+	@rm -rf $(BIN)
 
 .PHONY: all mkdirs clean
