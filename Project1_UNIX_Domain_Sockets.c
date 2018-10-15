@@ -24,8 +24,8 @@ int main(int argc, char **argv)
 	//  Find number of lines in file.
 	while(!feof(fp))
 	{
-		int current = fgetc(fp);
-		if(current == "\n")
+		char current = fgetc(fp);
+		if(current == '\n')
 		{
 			lines = lines + 1;
 		}
@@ -62,19 +62,19 @@ int main(int argc, char **argv)
 			wait(NULL);  //  Wait for child process completion
 			if(&buffer != 0)
 			{
-				printf("%s", "HERE\n");
-				//true_lines[num_true_lines] = &(buffer);
-				printf("%s", "HERE\n");
+				printf("%s", "Before Seg\n");
+				true_lines[num_true_lines] = &(buffer);
+				printf("%s", "Afrer Seg\n");
 				num_true_lines++;
 			}
 			printf("%s", "Parent While Loop Completed\n");
 			current_line_num++;
 		}
-		//  Sort array and print
-		for(int i = 0; i <= num_true_lines; i++)
-		{
-			//printf("%s", true_lines[i]);
-		}
+	}
+	//  Sort array and print
+	for(int i = 0; i <= num_true_lines; i++)
+	{
+		//printf("%s", true_lines[i]);
 	}
 
 	return 0;
