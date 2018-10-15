@@ -12,6 +12,11 @@
 
 typedef char * string;
 
+int comparator(const void * a, const void * b)
+{
+	return strcmp (*(const char **) a, *(const char **) b);
+}
+
 int main(int argc, char **argv)
 {
 	int socket[2];  //  Sockets
@@ -72,9 +77,11 @@ int main(int argc, char **argv)
 		}
 	}
 	//  Sort array and print
+	qsort(true_lines, num_true_lines, sizeof(string), comparator);
+	
 	for(int i = 0; i <= num_true_lines; i++)
 	{
-		//printf("%s", true_lines[i]);
+		printf("%s", true_lines[i]);
 	}
 
 	return 0;
