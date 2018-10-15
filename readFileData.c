@@ -10,6 +10,10 @@
 
 int main(int argc, char **argv)
 {
+  if (argc != 2) {
+    printf("Usage: %s <inputfile>\n", argv[0]);
+    return 1;
+  }
   FILE *fp = fopen(argv[1],"r"); // takes file from cmd line
   const char tmp[256]={0x0};  // used to scan entire file
   const char word[80];  // word of interest in file

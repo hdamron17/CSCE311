@@ -4,12 +4,17 @@ UTIL:=$(INCLUDE)/util
 SUBDIRS:=Part1 Part2 Part3
 MKDIRS:=bin
 CFLAGS:=-I$(INCLUDE)
+SAMPLE:=$(BIN)/sample
 
 export BIN UTIL CFLAGS
 
-all: $(SUBDIRS)
+all: $(SUBDIRS) sample
 $(SUBDIRS): | $(MKDIRS)
 	make -C $@
+
+sample: $(SAMPLE)
+$(SAMPLE): readFileData.c
+	$(CC) $(CFLAGS) $^ -o $@
 
 $(MKDIRS):
 	@mkdir -p $(MKDIRS)
@@ -17,4 +22,7 @@ $(MKDIRS):
 clean:
 	@rm -rf $(MKDIRS)
 
-.PHONY: all clean $(SUBDIRS)
+test:
+	make -C test
+
+.PHONY: all clean $(SUBDIRS) test
