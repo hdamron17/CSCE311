@@ -22,7 +22,15 @@ int main(int argc, char **argv)
 	int socket[2];  //  Sockets
 	char buffer;  //  Buffer for interprocess data
 	FILE *fp;  //  Pointer for reading file
+	if (argc != 2) {
+		printf("Usage: %s <inputfile>\n", argv[0]);
+		exit(1);
+	}
 	fp = fopen(argv[1], "r"); // takes file from cmd line
+	if (!fp) {
+		perror("fopen");
+		exit(1);
+	}
 	int lines = 0; //  Number of lines in file
 	int current_line_num = 0;  //  Current line number (for parent process)
 
@@ -50,7 +58,7 @@ int main(int argc, char **argv)
 		if(strstr(&buffer, argv[2])==NULL)
 		{
 			buffer = 0;
-		} 
+		}
 		write(socket[1], &buffer, sizeof(string));
 		printf("%s", "Child Process Complete\n");
 	}
@@ -58,7 +66,8 @@ int main(int argc, char **argv)
 	{
 		printf("%s", "\nParent Process Reached\n");
 		//  PARENT PROCESS
-    fp = fopen(argv[1], "r"); // takes file from cmd line
+    // fp = fopen(argv[1], "r"); // takes file from cmd line
+		rewind(fp);
 		while (current_line_num <= lines)
 		{
 			fgets(&buffer, 100,fp);
@@ -78,7 +87,7 @@ int main(int argc, char **argv)
 	}
 	//  Sort array and print
 	qsort(true_lines, num_true_lines, sizeof(string), comparator);
-	
+
 	for(int i = 0; i <= num_true_lines; i++)
 	{
 		printf("%s", true_lines[i]);
