@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "../include/util/varstring.h"
+
 #define DEBUG(x...) if (debug) {printf(x);}
 
 bool debug = true;
@@ -57,7 +59,7 @@ int main(int argc, char* argv[]) {
     }
   } while(rsize > 0 && !read_done && write_count > 0);
 
-  DEBUG((pid != 0) ? "Parent exiting\n" : "Child exiting\n");
+  DEBUG((pid != 0) ? "~Parent exiting\n" : "~Child exiting\n");
   close(to_buff[1]);  // Close pipe for writing to child
   close(from_buff[0]);  // Close pipe for reading from child
   close(to_buff[0]);  // Close pipe for reading from parent

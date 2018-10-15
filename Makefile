@@ -1,15 +1,20 @@
 BIN:=$(CURDIR)/bin
-SUBDIRS:=Part1 #Part2 Part3
+INCLUDE:=$(CURDIR)/include
+UTIL:=$(INCLUDE)/util
+SUBDIRS:=Part1 Part2 Part3
+MKDIRS:=bin
+CFLAGS:=-I$(INCLUDE)
 
-export BUILD BIN
+export BIN UTIL CFLAGS
 
-all: mkdirs
-	$(foreach subdir, $(SUBDIRS), make -C $(subdir))
+all: $(SUBDIRS)
+$(SUBDIRS): | $(MKDIRS)
+	make -C $@
 
-mkdirs:
-	@mkdir -p $(BIN)
+$(MKDIRS):
+	@mkdir -p $(MKDIRS)
 
 clean:
-	@rm -rf $(BIN)
+	@rm -rf $(MKDIRS)
 
-.PHONY: all mkdirs clean
+.PHONY: all clean $(SUBDIRS)
