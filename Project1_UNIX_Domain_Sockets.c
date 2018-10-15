@@ -50,12 +50,18 @@ int main(int argc, char **argv)
 	{
 		//  PARENT PROCESS
     fp = fopen(argv[1], "r"); // takes file from cmd line
+		int current_line_num = 0;
 
+		while (current_line_num <= lines)
+		{
+			string current_line = fgets()
+
+		}
 		write(socket[0], "bc", 1);  //  Write current line to buffer
 
 		read(socket[0], &buffer, 1);  //  Read current line from buffer
 
-		printf("Test: %s", buffer);
+		//printf("Test: %s", buffer);
 
 		wait(NULL);  //  Wait for child process completion
 	}
