@@ -54,8 +54,6 @@ int main(int argc, char **argv)
 		printf("%s", "\nParent Process Reached\n");
 		//  PARENT PROCESS
     fp = fopen(argv[1], "r"); // takes file from cmd line
-		printf("%s", "Parent File IO complete\n");
-		printf("%s", "Parent Before While Loop");
 		while (current_line_num <= lines)
 		{
 			fgets(&buffer, 100,fp);
@@ -64,7 +62,9 @@ int main(int argc, char **argv)
 			wait(NULL);  //  Wait for child process completion
 			if(&buffer != 0)
 			{
-				true_lines[num_true_lines] = &buffer;
+				printf("%s", "HERE\n");
+				//true_lines[num_true_lines] = &(buffer);
+				printf("%s", "HERE\n");
 				num_true_lines++;
 			}
 			printf("%s", "Parent While Loop Completed\n");
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 		//  Sort array and print
 		for(int i = 0; i <= num_true_lines; i++)
 		{
-			printf("%s", true_lines[i]);
+			//printf("%s", true_lines[i]);
 		}
 	}
 
