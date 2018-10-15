@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "../include/util/varstring.h"
+#include "util/varstring.h"
 
 #define DEBUG(x...) if (debug) {printf(x);}
 
