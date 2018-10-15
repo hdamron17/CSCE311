@@ -19,6 +19,7 @@ int main(int argc, char **argv)
 	FILE *fp;  //  Pointer for reading file
 	fp = fopen(argv[1], "r"); // takes file from cmd line
 	int lines = 0; //  Number of lines in file
+	int current_line_num = 0;  //  Current line number (for parent process)
 
 	//  Find number of lines in file.
 	while(!feof(fp))
@@ -29,7 +30,6 @@ int main(int argc, char **argv)
 			lines = lines + 1;
 		}
 	}
-
 	string true_lines[lines];  //  Array of strings with the word
 	int num_true_lines = 0;  //  Number of lines that contain the word
 
@@ -37,9 +37,9 @@ int main(int argc, char **argv)
 		perror("socketpair");
 		exit(1);
 	}
-
 	if (!fork())
 	{
+		printf("%s", "Child Process Reached\n");
 		//  CHILD PROCESS
 		read(socket[1], &buffer, sizeof(string));
 		if(strstr(&buffer, argv[2])==NULL)
@@ -47,14 +47,15 @@ int main(int argc, char **argv)
 			buffer = 0;
 		} 
 		write(socket[1], &buffer, sizeof(string));
-
+		printf("%s", "Child Process Complete\n");
 	}
 	else
 	{
+		printf("%s", "\nParent Process Reached\n");
 		//  PARENT PROCESS
     fp = fopen(argv[1], "r"); // takes file from cmd line
-		int current_line_num = 0;
-
+		printf("%s", "Parent File IO complete\n");
+		printf("%s", "Parent Before While Loop");
 		while (current_line_num <= lines)
 		{
 			fgets(&buffer, 100,fp);
@@ -66,9 +67,14 @@ int main(int argc, char **argv)
 				true_lines[num_true_lines] = &buffer;
 				num_true_lines++;
 			}
+			printf("%s", "Parent While Loop Completed\n");
 			current_line_num++;
 		}
-
+		//  Sort array and print
+		for(int i = 0; i <= num_true_lines; i++)
+		{
+			printf("%s", true_lines[i]);
+		}
 	}
 
 	return 0;
