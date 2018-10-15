@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
   /* This ptr is what gets passed from parent to child!
    * Incorporate the file here?
    */
-  void *ptr = mmap(0, region_size, PROT_READ | PROT_WRITE | MAP_SHARED, fd, 0);  // mmap-- maps files into memory, returns a ptr for reading/writing bytes
+  void *ptr = mmap(0, region_size, PROT_READ | PROT_WRITE,  MAP_SHARED, fd, 0);  // mmap-- maps files into memory, returns a ptr for reading/writing bytes
   if (ptr == MAP_FAILED)
     error("mmap");
   close(fd);
