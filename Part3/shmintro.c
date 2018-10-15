@@ -19,12 +19,24 @@ void error(const char *msg) {  // fn for detecting errors
 }
 
 int main(int argc, char* argv[]) {
+  if (argc != 2) {
+    printf("Usage: %s <inputfile>\n", argv[0]);
+    return 1;
+  }
+  FILE *fp = fopen(argv[1], "r"); // takes file from cmd line
+  if (!fp) {
+    error("fopen");
+  }
+  fseek(fp, 0L, SEEK_END);
+  size_t filesize = ftell(fp);
+  rewind(fp);
+
   int t;
 
-  const char *memname = "example";  // possibly incorporate file path here and / or line 27?
-  const size_t region_size = sysconf(_SC_PAGE_SIZE);  // configures size of mem
+  const char *memname = "part3";  // possibly incorporate file path here and / or line 27?
+  const size_t region_size = filesize; // sysconf(_SC_PAGE_SIZE);  // configures size of mem
 
-  int fd = shm_open(memname, O_CREAT | O_TRUNC | O_RDWR, 0666);  // creates a new shared mem object with read/write access, returns a file descriptor
+  int fd = shm_open(memname, O_CREAT | O_RDWR, 0666);  // creates a new shared mem object with read/write access, returns a file descriptor
   if (fd == -1)
     error("shm_open");
 
@@ -44,11 +56,15 @@ int main(int argc, char* argv[]) {
 
   if (pid == 0) {  // child
     u_long *l = (u_long *) ptr;  // type cast to ptr above
+    printf("Child writing\n");
     *l = 0xdbeebee;  // some random data to be written
+    printf("Child done writing\n");
     exit(0);
   } else {  // parent
     int status;
+    printf("Parent waiting\n");
     waitpid(pid, &status, 0);  // parent waits for the child to exit
+    printf("Parent done waiting\n");
     printf("child wrote %#lx\n", *(u_long *) ptr);  // parent reads what child wrote
   }
 

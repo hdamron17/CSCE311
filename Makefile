@@ -5,8 +5,15 @@ SUBDIRS:=Part1 Part2 Part3
 MKDIRS:=bin
 CFLAGS:=-I$(INCLUDE)
 SAMPLE:=$(BIN)/sample
+UNAME:=$(shell uname)
 
-export BIN UTIL CFLAGS
+ifeq ($(UNAME), Darwin)  # MacOS doesn't need -lrt
+  LRT=
+else
+  LRT=-lrt
+endif
+
+export BIN UTIL CFLAGS UNAME LRT
 
 all: $(SUBDIRS) sample
 $(SUBDIRS): | $(MKDIRS)
