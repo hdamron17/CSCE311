@@ -31,6 +31,7 @@ int main(int argc, char **argv)
 	}
 
 	string true_lines[lines];  //  Array of strings with the word
+	int num_true_lines = 0;  //  Number of lines that contain the word
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, socket) == -1) {  //  Beej
 		perror("socketpair");
@@ -40,10 +41,12 @@ int main(int argc, char **argv)
 	if (!fork())
 	{
 		//  CHILD PROCESS
-		read(socket[1], &buffer, 1);
-      
-
-		write(socket[1], &buffer, 1);
+		read(socket[1], &buffer, sizeof(string));
+		if(strstr(&buffer, argv[2])==NULL)
+		{
+			buffer = 0;
+		} 
+		write(socket[1], &buffer, sizeof(string));
 
 	}
 	else
@@ -54,16 +57,18 @@ int main(int argc, char **argv)
 
 		while (current_line_num <= lines)
 		{
-			string current_line = fgets()
-
+			fgets(&buffer, 100,fp);
+			write(socket[0], &buffer, sizeof(string));  //  Write current line to buffer
+			read(socket[0], &buffer, sizeof(string));  //  Read current line from buffer
+			wait(NULL);  //  Wait for child process completion
+			if(&buffer != 0)
+			{
+				true_lines[num_true_lines] = &buffer;
+				num_true_lines++;
+			}
+			current_line_num++;
 		}
-		write(socket[0], "bc", 1);  //  Write current line to buffer
 
-		read(socket[0], &buffer, 1);  //  Read current line from buffer
-
-		//printf("Test: %s", buffer);
-
-		wait(NULL);  //  Wait for child process completion
 	}
 
 	return 0;
