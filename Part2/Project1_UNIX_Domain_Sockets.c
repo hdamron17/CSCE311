@@ -12,9 +12,9 @@
 
 typedef char * string;
 
-int comparator(const void * a, const void * b)
+int comparator(const void * string1, const void * string2)
 {
-	return strcmp (*(const char **) a, *(const char **) b);
+	return strcmp (*(const char **) string1, *(const char **) string2);
 }
 
 int main(int argc, char **argv)
@@ -22,8 +22,8 @@ int main(int argc, char **argv)
 	int socket[2];  //  Sockets
 	char buffer;  //  Buffer for interprocess data
 	FILE *fp;  //  Pointer for reading file
-	if (argc != 2) {
-		printf("Usage: %s <inputfile>\n", argv[0]);
+	if (argc != 3) {
+		printf("Usage: %s <inputfile> <word>\n", argv[0]);
 		exit(1);
 	}
 	fp = fopen(argv[1], "r"); // takes file from cmd line
