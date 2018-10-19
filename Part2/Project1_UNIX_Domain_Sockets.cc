@@ -1,16 +1,21 @@
 /* This was adapted from a Beej exmaple program (spair) */
-
+//TODO: Need to change file IO for C++
+//TODO: Check if these are relevant in c++
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <string.h>
+#include <string>
+#include <fstream>
+#include <vector>
 #include <errno.h> //Beej
 #include <unistd.h> //Beej
 #include <sys/types.h> //Beej
 #include <sys/socket.h> //Beej
 #include <sys/wait.h> //Beej
 
-typedef char * string;
+using std::string;
+using std::ifstream;
+using std::vector;
 
 int comparator(const void * string1, const void * string2)
 {
@@ -20,8 +25,8 @@ int comparator(const void * string1, const void * string2)
 int main(int argc, char **argv)
 {
 	int socket[2];  //  Sockets
-	char buffer;  //  Buffer for interprocess data
-	FILE *fp;  //  Pointer for reading file
+	string buffer;  //  Buffer for interprocess data
+	ifstream infile(argv[1])
 	if (argc != 3) {
 		printf("Usage: %s <inputfile> <word>\n", argv[0]);
 		exit(1);
@@ -43,7 +48,7 @@ int main(int argc, char **argv)
 			lines = lines + 1;
 		}
 	}
-	string true_lines[lines];  //  Array of strings with the word
+	vector<string> true_lines;
 	int num_true_lines = 0;  //  Number of lines that contain the word
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, socket) == -1) {  //  Beej
