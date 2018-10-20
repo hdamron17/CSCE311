@@ -16,20 +16,32 @@ for ifile in $dir/*.in; do
     m=$(basename $ofile .out)
     totalstr=""
     key=$(head -n1 $ofile)
-    diffstr=$(diff <(tail -n +2 $ofile) <(echo "$key" | $prog $ifile))
+    outputkey="$(tail -n +2 $ofile)"
+    output="$($prog $ifile $key)"
+    diffstr="$(diff <(echo -n "$outputkey") <(echo -n "$output"))"
+    if [ ! -z "$results" ]; then
+      results=$(printf "${results}\nTest $m ")
+    else
+      results=$(printf "${results}Test $m ")
+    fi
     if [ ! -z "$diffstr" ]; then
-      echo "$diffstr"
+      echo "~$m Failure Diff"
+      echo ">~~~~~"
+      # echo "$diffstr"
+      echo "$(diff -y <(echo -n "$outputkey") <(echo -n "$output"))"
+      echo "~~~~~<"
       totalstr="$totalstr$diffstr"
       bigtotalstr="$bigtotalstr$diffstr"
-      results=$(printf "$results\nTest $m failed")
+      results="$results failed"
     else
-      results=$(printf "$results\nTest $m passed")
+      results="$results passed"
     fi
   done
 done
 echo "$results"
 if [ ! -z "$bigtotalstr" ]; then
   echo "Some test(s) failed"
+  exit 1
 else
   echo "All tests passed"
 fi

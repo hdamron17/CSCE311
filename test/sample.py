@@ -4,15 +4,15 @@ import sys
 import re
 
 def main():
-  if len(sys.argv) != 2:
-    print("Usage: " + sys.argv[0] + " <search_file>")
+  args = ["<search_file>", "<key>"]
+  if len(sys.argv) != len(args) + 1:
+    print("Usage: " + " ".join([sys.argv[0]] + args))
     return
   lines = []
-  key = input()  # Possibly print an input message
+  ifile, key = sys.argv[1:1+len(args)]
   keyregex = re.compile(r'(^|\s)%s($|\s)' % key)
-  with open(sys.argv[1], "r") as ifile:
+  with open(ifile, "r") as ifile:
     for l in ifile:
-      # if key in l:
       if keyregex.search(l) is not None:
         lines.append(l[:-1])
   lines.sort(key=str.lower)
