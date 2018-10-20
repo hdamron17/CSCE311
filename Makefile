@@ -3,7 +3,8 @@ INCLUDE:=$(CURDIR)/include
 UTIL:=$(INCLUDE)/util
 SUBDIRS:=Part1 Part2 Part3
 MKDIRS:=bin
-CFLAGS:=-I$(INCLUDE)
+CFLAGS:=-I$(INCLUDE) -Wall -Wextra -pedantic
+CXXFLAGS:=$(CFLAGS) -std=c++11
 SAMPLE:=$(BIN)/sample
 UNAME:=$(shell uname)
 
@@ -13,7 +14,7 @@ else
   LRT=-lrt
 endif
 
-export BIN UTIL CFLAGS UNAME LRT
+export BIN UTIL CFLAGS CXXFLAGS UNAME LRT
 
 all: $(SUBDIRS) sample
 $(SUBDIRS): | $(MKDIRS)

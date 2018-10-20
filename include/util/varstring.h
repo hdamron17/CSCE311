@@ -1,11 +1,11 @@
-#ifndef  _VARSTRING_H
+#ifndef _VARSTRING_H
 #define _VARSTRING_H
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 
-#define VSTRING_SIZE 100
+#define VSTRING_SIZE 20
 
 typedef struct vstringnode vstringnode;
 struct vstringnode {
@@ -67,6 +67,11 @@ void delvstring(vstring *vstr_ptr) {
   }
 }
 
+void clearvstring(vstring *vstr_ptr) {
+  delvstring(vstr_ptr);
+  *vstr_ptr = mkvstring();
+}
+
 void add_char(vstring *vstr_ptr, char to_add) {
   if (vstr_ptr->tail->n == VSTRING_SIZE) {
     // Add another vstringnode
@@ -79,10 +84,15 @@ void add_char(vstring *vstr_ptr, char to_add) {
   ++(vstr_ptr->tail->n);
 }
 
-void add_str(vstring* vstr_ptr, char* to_add) {
-  for (char* c = to_add; *c != '\0'; ++c) {
+void add_strn(vstring* vstr_ptr, char* to_add, int n) {
+  for (char* c = to_add; n >= 0 && (c - to_add < n && *c != '\0'); ++c) {
+    // printf("## DBG add_strn *c: %c, n: %d, c: %zu, c - to_add: %zu\n", *c, n, c, c-to_add);
     add_char(vstr_ptr, *c);
   }
+}
+
+void add_str(vstring* vstr_ptr, char* to_add) {
+  add_strn(vstr_ptr, to_add, -1);
 }
 
 typedef struct alphlistnode alphlistnode;
