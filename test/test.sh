@@ -4,6 +4,8 @@ if [ "$#" -ne 1 ]; then
   echo "Usage: $0 <executable>"
   exit 1
 fi
+echo "Testing $(basename $1)"
+echo "------"
 
 dir=$(dirname $0)
 prog=$1
@@ -40,8 +42,9 @@ for ifile in $dir/*.in; do
 done
 echo "$results"
 if [ ! -z "$bigtotalstr" ]; then
-  echo "Some test(s) failed"
+  echo "Some test(s) for $(basename $1) failed"
   exit 1
 else
-  echo "All tests passed"
+  echo "All tests for $(basename $1) passed"
 fi
+echo "======"
