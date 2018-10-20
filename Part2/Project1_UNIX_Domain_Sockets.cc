@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string>
+#include <iostream>
 #include <fstream>
 #include <vector>
 #include <errno.h> //Beej
@@ -16,40 +17,36 @@
 using std::string;
 using std::ifstream;
 using std::vector;
+using std::cout;
+using std::cin;
+using std::endl;
 
-int comparator(const void * string1, const void * string2)
-{
-	return strcmp (*(const char **) string1, *(const char **) string2);
-}
 
 int main(int argc, char **argv)
 {
 	int socket[2];  //  Sockets
-	string buffer;  //  Buffer for interprocess data
-	ifstream infile(argv[1])
+	string *buffer;  //  Buffer for interprocess data
+	int lines = -1; //  Number of lines in file
+	int current_line_num = 0;  //  Current line number (for parent process)
+	vector<string> true_lines;
+	int num_true_lines = 0;  //  Number of lines that contain the word
+
+	ifstream inf(argv[1]);
+
 	if (argc != 3) {
 		printf("Usage: %s <inputfile> <word>\n", argv[0]);
 		exit(1);
 	}
-	fp = fopen(argv[1], "r"); // takes file from cmd line
-	if (!fp) {
-		perror("fopen");
-		exit(1);
-	}
-	int lines = 0; //  Number of lines in file
-	int current_line_num = 0;  //  Current line number (for parent process)
 
 	//  Find number of lines in file.
-	while(!feof(fp))
+	while(inf)
 	{
-		char current = fgetc(fp);
-		if(current == '\n')
-		{
-			lines = lines + 1;
-		}
+		string current;
+		getline(inf, current);
+		lines = lines + 1;
 	}
-	vector<string> true_lines;
-	int num_true_lines = 0;  //  Number of lines that contain the word
+
+	cout << lines << endl;
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, socket) == -1) {  //  Beej
 		perror("socketpair");
@@ -57,12 +54,13 @@ int main(int argc, char **argv)
 	}
 	if (!fork())
 	{
+		string word = argv[2];
 		printf("%s", "Child Process Reached\n");
 		//  CHILD PROCESS
 		read(socket[1], &buffer, sizeof(string));
-		if(strstr(&buffer, argv[2])==NULL)
+		if(buffer->find(word) != string::npos)
 		{
-			buffer = 0;
+			buffer = NULL;
 		}
 		write(socket[1], &buffer, sizeof(string));
 		printf("%s", "Child Process Complete\n");
@@ -71,31 +69,26 @@ int main(int argc, char **argv)
 	{
 		printf("%s", "\nParent Process Reached\n");
 		//  PARENT PROCESS
-    // fp = fopen(argv[1], "r"); // takes file from cmd line
-		rewind(fp);
-		while (current_line_num <= lines)
+		ifstream inf(argv[1]);
+		
+		while (inf)
 		{
-			fgets(&buffer, 100,fp);
+			string currentString;
+			getline(inf, currentString);
+			buffer = &(currentString);
 			write(socket[0], &buffer, sizeof(string));  //  Write current line to buffer
 			read(socket[0], &buffer, sizeof(string));  //  Read current line from buffer
 			wait(NULL);  //  Wait for child process completion
-			if(&buffer != 0)
+			if(buffer != NULL)
 			{
 				printf("%s", "Before Seg\n");
-				true_lines[num_true_lines] = &(buffer);
+				true_lines[current_line_num] = *(buffer);
 				printf("%s", "Afrer Seg\n");
 				num_true_lines++;
 			}
 			printf("%s", "Parent While Loop Completed\n");
 			current_line_num++;
 		}
-	}
-	//  Sort array and print
-	qsort(true_lines, num_true_lines, sizeof(string), comparator);
-
-	for(int i = 0; i <= num_true_lines; i++)
-	{
-		printf("%s", true_lines[i]);
 	}
 
 	return 0;
