@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "util/varstring.h"
 
-int main(int argc, char* argv[]) {
+int main() {
   vstring s = mkvstring();
   add_str(&s, "Hello World and hello doggos");
   char* cstr = v_to_cstring(&s);

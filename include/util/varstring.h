@@ -107,7 +107,7 @@ alphlistnode mkalphlistnode(const char* str) {
   alistnode.next = NULL;
   size_t strsize = strlen(str);
   alistnode.str = malloc(strsize);
-  strcpy(alistnode.str, str);
+  strncpy(alistnode.str, str, strsize);
   alistnode.n = strsize;
   return alistnode;
 }
@@ -127,6 +127,7 @@ void delalphlist(alphlist *alist_ptr) {
   while (node != NULL) {
     alphlistnode *next = node->next;
     free(node->str);
+    free(node);
     node = next;
   }
 }
@@ -171,14 +172,25 @@ void alphinsert(alphlist *alist_ptr, const char* to_insert) {
   }
 }
 
-char* alphlist_cstring(const alphlist *alist_ptr) {
-  size_t size = 0, i = 0;
+void alphvinsert(alphlist *alist_ptr, const vstring* to_insert) {
+  char* insert_cstr = v_to_cstring(to_insert);
+  alphinsert(alist_ptr, insert_cstr);
+  free(insert_cstr);
+}
+
+size_t alphsize(const alphlist *alist_ptr) {
+  size_t size = 0;
   for (alphlistnode *node = alist_ptr->head; node != NULL; node = node->next) {
-    size += node->n + 1;  // Plus 1 for newline or null terminator
+    size += node->n + 1;  // Plus 1 for newline
   }
+  return size - 1;  // Exclude final null terminator
+}
+
+char* alphlist_cstring(const alphlist *alist_ptr) {
+  size_t i = 0, size = alphsize(alist_ptr) + 1;
   char* cstr = malloc(size);
   for (alphlistnode *node = alist_ptr->head; node != NULL; node = node->next) {
-    strcpy(&cstr[i], node->str);
+    strncpy(&cstr[i], node->str, node->n);
     cstr[i+node->n] = '\n';
     i += node->n + 1;
   }
