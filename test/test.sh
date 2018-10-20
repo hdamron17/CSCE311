@@ -29,8 +29,8 @@ for ifile in $dir/*.in; do
     if [ ! -z "$diffstr" ]; then
       echo "~$m Failure Diff"
       echo ">~~~~~"
-      # echo "$diffstr"
-      echo "$(diff -y <(echo -n "$outputkey") <(echo -n "$output"))"
+      echo "$diffstr"
+      # echo "$(diff -y <(echo -n "$outputkey") <(echo -n "$output"))"
       echo "~~~~~<"
       totalstr="$totalstr$diffstr"
       bigtotalstr="$bigtotalstr$diffstr"
