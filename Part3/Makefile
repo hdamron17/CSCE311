@@ -1,4 +1,4 @@
-SRC=shmintro.c
+SRC=Project1_SHM.c
 DEST=$(BIN)/part3
 
 $(DEST): $(SRC)
