@@ -1,5 +1,13 @@
 // Current status: can do one write-read pair but then hangs because read blocks the parent from writing what it needs to read
 
+#if !defined PART1 && !defined PART2
+#define PART1
+#endif
+
+#ifndef BSIZE
+#define BSIZE 1
+#endif
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -7,6 +15,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+#ifndef PART1
+#include <sys/socket.h>
+#endif
 
 #include "util/varstring.h"
 #include "util/strcontains.h"
@@ -14,7 +25,6 @@
 #define DEBUG(...) if (debug) {printf("~%s ", (pid == 0 ? "C" : "P")); printf(__VA_ARGS__);}
 
 bool debug = false;
-size_t BSIZE = 10;
 
 int main(int argc, char* argv[]) {
   if (argc != 3) {
@@ -22,9 +32,25 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
+  #ifdef PART1
   int to_buff[2], from_buff[2];
   pipe(to_buff);
   pipe(from_buff);
+  #define PWRITE to_buff[0]
+  #define PREAD  from_buff[1]
+  #define CWRITE from_buff[0]
+  #define CREAD  to_buff[1]
+  #else
+  int sock[2];
+  if (socketpair(AF_UNIX, SOCK_STREAM, 0, sock) == -1) {
+    perror("socketpair");
+    exit(1);
+  }
+  #define PWRITE sock[0]
+  #define PREAD  sock[0]
+  #define CWRITE sock[1]
+  #define CREAD  sock[1]
+  #endif
 
   int rsize = 0;
   char buff[BSIZE];
@@ -43,13 +69,15 @@ int main(int argc, char* argv[]) {
          read_eof = false;
 
     // So parent does not block waiting for child if child has nothing to say
-    fcntl(from_buff[0], F_SETFL, fcntl(from_buff[0], F_GETFL) | O_NONBLOCK);
+    fcntl(CWRITE, F_SETFL, fcntl(CWRITE, F_GETFL) | O_NONBLOCK);
 
     vstring currstr = mkvstring();
     alphlist alist = mkalphlist();
     do {
-      close(to_buff[0]);  // Open pipe for writing to child
-      close(from_buff[1]);  // Open pipe for reading from child
+      #ifdef PART1
+        close(PWRITE);  // Open pipe for writing to child
+        close(PREAD);  // Open pipe for reading from child
+      #endif
       DEBUG("beginning\n");
       if (!feof(fp)) {
         int start = ftell(fp);
@@ -57,16 +85,16 @@ int main(int argc, char* argv[]) {
         n = ftell(fp) - start;
         DEBUG("writing\n");
         DEBUG("n = %d\n", n);
-        write(to_buff[1], fbuff, n);
+        write(CREAD, fbuff, n);
       } else if (!wrote_eof) {
-        write(to_buff[1], "\0", 1);
+        write(CREAD, "\0", 1);
         wrote_eof = true;
         DEBUG("writing EOF\n");
       } else {
         DEBUG("input file is already empty\n");
       }
       DEBUG("done writing, reading\n");
-      rsize = read(from_buff[0], buff, BSIZE);
+      rsize = read(CWRITE, buff, BSIZE);
       if (rsize > 0) {
         DEBUG("adding to alphlist\n");
         DEBUG("rsize: %d\n", rsize);
@@ -106,8 +134,8 @@ int main(int argc, char* argv[]) {
     delalphlist(&alist);
 
     fclose(fp);
-    close(to_buff[1]);  // Close pipe for writing to child
-    close(from_buff[0]);  // Close pipe for reading from child
+    close(CREAD);  // Close pipe for writing to child
+    close(CWRITE);  // Close pipe for reading from child
     DEBUG("exiting\n");
   } else {
     // Child
@@ -115,10 +143,12 @@ int main(int argc, char* argv[]) {
     vstring currstr = mkvstring();
     char* key = argv[2];
     do {
-      close(to_buff[1]);  // Open pipe for reading from parent
-      close(from_buff[0]);  // Open pipe for writing to parent
+      #ifdef PART1
+        close(CREAD);  // Open pipe for reading from parent
+        close(CWRITE);  // Open pipe for writing to parent
+      #endif
       DEBUG("beginning\n");
-      rsize = read(to_buff[0], buff, BSIZE);
+      rsize = read(PWRITE, buff, BSIZE);
       if (rsize > 0 && buff[rsize-1] == '\0') {
         DEBUG("read EOF\n");
         read_eof = true;
@@ -140,7 +170,7 @@ int main(int argc, char* argv[]) {
         int n = vstringsize(&currstr);
         DEBUG("Line length: %d from (n-1 = %zu * size = %d + tail.n = %zu)\n", n, currstr.n-1, VSTRING_SIZE, currstr.tail->n);
         if (strcontains(curr_cstr, key, n))
-          write(from_buff[1], curr_cstr, n);
+          write(PREAD, curr_cstr, n);
         free(curr_cstr);
         clearvstring(&currstr);
         DEBUG("currstr size changing from %zu\n", vstringsize(&currstr));
@@ -155,13 +185,15 @@ int main(int argc, char* argv[]) {
       DEBUG("adding %d chars with n now %zu\n", rsize, vstringsize(&currstr));
 
       if (read_eof) {
-        write(from_buff[1], "\0", 1);
+        write(PREAD, "\0", 1);
       }
       DEBUG("done\n");
     } while(!read_eof);
     delvstring(&currstr);
-    close(to_buff[0]);  // Close pipe for reading from parent
-    close(from_buff[1]);  // Close pipe for writing to parent
+    #ifdef PART1
+      close(PWRITE);  // Close pipe for reading from parent
+      close(PREAD);  // Close pipe for writing to parent
+    #endif
     DEBUG("exiting\n");
     exit(0);
   }
