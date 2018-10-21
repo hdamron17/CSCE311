@@ -20,11 +20,11 @@ export BIN UTIL COMM CFLAGS CXXFLAGS UNAME LRT
 all: $(PARTS) sample
 
 Part1: $(BIN)/part1
-$(BIN)/part1: $(COMM)/base.c | $(MKDIRS)
+$(BIN)/part1: $(COMM)/base.c $(UTIL)/strcontains.h $(UTIL)/varstring.h | $(MKDIRS)
 	$(CC) $(CFLAGS) -DPART1 -DBSIZE=20 $< -o $@
 
 Part2: $(BIN)/part2
-$(BIN)/part2: $(COMM)/base.c | $(MKDIRS)
+$(BIN)/part2: $(COMM)/base.c $(UTIL)/strcontains.h $(UTIL)/varstring.h | $(MKDIRS)
 	$(CC) $(CFLAGS) -DPART2 -DBSIZE=20 $< -o $@  # TODO BSIZE may need to be 1
 
 Part3: | $(MKDIRS)
