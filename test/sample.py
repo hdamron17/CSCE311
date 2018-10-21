@@ -10,7 +10,7 @@ def main():
     return
   lines = []
   ifile, key = sys.argv[1:1+len(args)]
-  keyregex = re.compile(r'(^|\s)%s($|\s)' % key)
+  keyregex = re.compile(r'(^|[^a-zA-Z])%s($|[^a-zA-Z])' % key, re.IGNORECASE)
   with open(ifile, "r") as ifile:
     for l in ifile:
       if keyregex.search(l) is not None:
