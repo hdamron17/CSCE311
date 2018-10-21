@@ -1,3 +1,5 @@
+#define SEG_SIZE 400  //  Number of bytes per segment to read
+
 /* shmintro.c -- Intro to shared memory
  * Basically the hello world for shared memory
  * A pointer is created in shared memory and is passed from parent to child.
