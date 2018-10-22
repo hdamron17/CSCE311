@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 // Assumes key is null terminated
 bool strcontains(char* str, char* key, size_t n) {
