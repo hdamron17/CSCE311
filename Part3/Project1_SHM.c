@@ -1,5 +1,3 @@
-#define SEG_SIZE 400  //  Number of bytes per segment to read
-
 /* shmintro.c -- Intro to shared memory
  * Basically the hello world for shared memory
  * A pointer is created in shared memory and is passed from parent to child.
@@ -21,10 +19,12 @@ void error(const char *msg) {  // fn for detecting errors
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
+  if (argc != 3) {
     printf("Usage: %s <inputfile>\n", argv[0]);
     return 1;
   }
+  char * key = argv[2];  //  Word to search for (key)
+
   FILE *fp = fopen(argv[1], "r"); // takes file from cmd line
   if (!fp) {
     error("fopen");
@@ -59,6 +59,7 @@ int main(int argc, char* argv[]) {
   if (pid == 0) {  // child
     u_long *l = (u_long *) ptr;  // type cast to ptr above
     printf("Child writing\n");
+    // TODO: This is where the child will search and write lines that contain key**************************
     *l = 0xdbeebee;  // some random data to be written
     printf("Child done writing\n");
     exit(0);
@@ -67,6 +68,7 @@ int main(int argc, char* argv[]) {
     printf("Parent waiting\n");
     waitpid(pid, &status, 0);  // parent waits for the child to exit
     printf("Parent done waiting\n");
+    // TODO: This is where the parent will print the lines that contain the string********************************
     printf("child wrote %#lx\n", *(u_long *) ptr);  // parent reads what child wrote
   }
 
