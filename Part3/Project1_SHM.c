@@ -12,6 +12,7 @@
 #include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
+#include "../include/util/strcontains.h"
 
 void error(const char *msg) {  // fn for detecting errors
   perror(msg);
@@ -60,6 +61,7 @@ int main(int argc, char* argv[]) {
     u_long *l = (u_long *) ptr;  // type cast to ptr above
     printf("Child writing\n");
     // TODO: This is where the child will search and write lines that contain key**************************
+    //strcontains(char* str, key, size_t n);
     *l = 0xdbeebee;  // some random data to be written
     printf("Child done writing\n");
     exit(0);
