@@ -1,5 +1,5 @@
-/* shmintro.c -- Intro to shared memory
- * Basically the hello world for shared memory
+/* Project1_SHM.c -- shared memory w/ map reduce
+ * Continuation/revamp of shmintro.c
  * A pointer is created in shared memory and is passed from parent to child.
  * The child writes to memory and the parent reads it.
  * TODO: Figure out how to incorporate file, 4 threads/map-reduce
@@ -12,6 +12,7 @@
 #include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
+#include "../include/util/strcontains.h"
 
 void error(const char *msg) {  // fn for detecting errors
   perror(msg);
@@ -46,9 +47,7 @@ int main(int argc, char* argv[]) {
 
   if (t != 0)
     error("ftruncate");
-  /* This ptr is what gets passed from parent to child!
-   * Incorporate the file here?
-   */
+  // This ptr is what gets passed from parent to child!
   void *ptr = mmap(0, region_size, PROT_READ | PROT_WRITE,  MAP_SHARED, fd, 0);  // mmap-- maps files into memory, returns a ptr for reading/writing bytes
   if (ptr == MAP_FAILED)
     error("mmap");
@@ -60,6 +59,7 @@ int main(int argc, char* argv[]) {
     u_long *l = (u_long *) ptr;  // type cast to ptr above
     printf("Child writing\n");
     // TODO: This is where the child will search and write lines that contain key**************************
+    //strcontains(char* str, key, size_t n);
     *l = 0xdbeebee;  // some random data to be written
     printf("Child done writing\n");
     exit(0);
