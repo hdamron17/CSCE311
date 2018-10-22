@@ -13,7 +13,6 @@
 #include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
-#include <semaphore.h>
 #include <pthread.h>
 
 #include "util/strcontains.h"
@@ -110,7 +109,7 @@ int main(int argc, char* argv[]) {
   int t;
 
   const char *memname = "part3";  // possibly incorporate file path here and / or line 27?
-  const size_t region_size = sizeof(sem_t) + sizeof(size_t) + filesize; // sysconf(_SC_PAGE_SIZE);  // configures size of mem
+  const size_t region_size = sizeof(size_t) + filesize; // sysconf(_SC_PAGE_SIZE);  // configures size of mem
 
   int fd = shm_open(memname, O_CREAT | O_RDWR, 0666);  // creates a new shared mem object with read/write access, returns a file descriptor
   if (fd == -1)
@@ -126,13 +125,8 @@ int main(int argc, char* argv[]) {
     error("mmap");
   close(fd);
 
-  sem_t *shm_sem = ptr;  // Will be used to tell parent when it can print the shared memory contents
-  size_t *shm_size = (size_t*) (sizeof(shm_sem) + shm_sem);  // Size of file initially, then size of section to print
-  char *shm = (char*) (sizeof(shm_sem) + sizeof(shm_size) + shm_size);
-
-  int sem_fail = sem_init(shm_sem, 1, 0);
-  if (sem_fail)
-    error("sem_init");
+  size_t *shm_size = (size_t*) ptr;  // Size of file initially, then size of section to print
+  char *shm = (char*) (sizeof(shm_size) + shm_size);
 
   *shm_size = filesize;
 
@@ -205,10 +199,6 @@ int main(int argc, char* argv[]) {
     fwrite(shm, sizeof(char), filesize, stdout);
     // printf("child wrote %#lx\n", *(u_long *) ptr);  // parent reads what child wrote
   }
-
-  t = sem_destroy(shm_sem);
-  if (t != 0)
-    error("sem_destroy");
 
   // Before parent can exit, shared memory must be freed and unlinked
   t = munmap(ptr, region_size);
