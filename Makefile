@@ -4,7 +4,7 @@ UTIL:=$(INCLUDE)/util
 COMM:=$(CURDIR)/common
 PARTS:=Part1 Part2 Part3
 MKDIRS:=bin
-CFLAGS:=-I$(INCLUDE) -Wall -Wextra -pedantic
+CFLAGS:=-I$(INCLUDE) -Wall -Wextra -pedantic -Werror=deprecated-declarations
 CXXFLAGS:=$(CFLAGS) -std=c++11
 SAMPLE:=$(BIN)/sample
 UNAME:=$(shell uname)
@@ -21,11 +21,11 @@ all: $(PARTS) sample
 
 Part1: $(BIN)/part1
 $(BIN)/part1: $(COMM)/base.c $(UTIL)/strcontains.h $(UTIL)/varstring.h | $(MKDIRS)
-	$(CC) $(CFLAGS) -DPART1 -DBSIZE=20 $< -o $@
+	$(CC) $(CFLAGS) -DPART1 $< -o $@
 
 Part2: $(BIN)/part2
 $(BIN)/part2: $(COMM)/base.c $(UTIL)/strcontains.h $(UTIL)/varstring.h | $(MKDIRS)
-	$(CC) $(CFLAGS) -DPART2 -DBSIZE=20 $< -o $@  # TODO BSIZE may need to be 1
+	$(CC) $(CFLAGS) -DPART2 $< -o $@
 
 Part3: | $(MKDIRS)
 	make -C $@

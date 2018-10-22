@@ -8,11 +8,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
-#include "../include/util/strcontains.h"
+#include <semaphore.h>
+
+#include "util/strcontains.h"
+
+#define DEBUG(...) if (debug) {printf("~%s ", (pid == 0 ? "C" : "P")); printf(__VA_ARGS__);}
+bool debug = true;
 
 void error(const char *msg) {  // fn for detecting errors
   perror(msg);
@@ -37,7 +43,7 @@ int main(int argc, char* argv[]) {
   int t;
 
   const char *memname = "part3";  // possibly incorporate file path here and / or line 27?
-  const size_t region_size = filesize; // sysconf(_SC_PAGE_SIZE);  // configures size of mem
+  const size_t region_size = sizeof(sem_t) + sizeof(size_t) + filesize; // sysconf(_SC_PAGE_SIZE);  // configures size of mem
 
   int fd = shm_open(memname, O_CREAT | O_RDWR, 0666);  // creates a new shared mem object with read/write access, returns a file descriptor
   if (fd == -1)
@@ -53,24 +59,41 @@ int main(int argc, char* argv[]) {
     error("mmap");
   close(fd);
 
+  sem_t *shm_sem = ptr;
+  size_t *shm_size = (size_t*) (sizeof(shm_sem) + shm_sem);
+  char *shm = (char*) (sizeof(shm_sem) + sizeof(shm_size) + shm_size);
+
+  int sem_fail = sem_init(shm_sem, 1, 0);
+  if (sem_fail)
+    error("sem_init");
+
+  *shm_size = filesize;
+
+  fread(shm, sizeof(char), filesize, fp);  // Read file into shared memory
+  fclose(fp);
+
   pid_t pid = fork();  // create a child process
 
   if (pid == 0) {  // child
-    u_long *l = (u_long *) ptr;  // type cast to ptr above
-    printf("Child writing\n");
+    DEBUG("writing\n");
     // TODO: This is where the child will search and write lines that contain key**************************
-    //strcontains(char* str, key, size_t n);
-    *l = 0xdbeebee;  // some random data to be written
-    printf("Child done writing\n");
+    // strcontains(char* str, key, size_t n);
+    shm[0] = '?';  // some random data to be written
+    DEBUG("done writing\n");
     exit(0);
   } else {  // parent
     int status;
-    printf("Parent waiting\n");
+    DEBUG("waiting\n");
     waitpid(pid, &status, 0);  // parent waits for the child to exit
-    printf("Parent done waiting\n");
+    DEBUG("done waiting\n");
     // TODO: This is where the parent will print the lines that contain the string********************************
-    printf("child wrote %#lx\n", *(u_long *) ptr);  // parent reads what child wrote
+    fwrite(shm, sizeof(char), filesize, stdout);
+    // printf("child wrote %#lx\n", *(u_long *) ptr);  // parent reads what child wrote
   }
+
+  t = sem_destroy(shm_sem);
+  if (t != 0)
+    error("sem_destroy");
 
   // Before parent can exit, shared memory must be freed and unlinked
   t = munmap(ptr, region_size);
