@@ -16,6 +16,7 @@
 #include <pthread.h>
 
 #include "util/strcontains.h"
+#include "../include/util/varstring.h"
 
 #define NTHREADS 4
 
@@ -286,6 +287,16 @@ int main(int argc, char* argv[]) {
     // TODO: This is where the parent will print the lines that contain the string********************************
     fwrite(shm, sizeof(char), filesize, stdout);
     // printf("child wrote %#lx\n", *(u_long *) ptr);  // parent reads what child wrote
+
+    const alphlist* output = alphlist();
+    while(shm != NULL) {
+      const char* line;
+      while(*(shm) != "\n") {
+        line = charptr;
+      }
+      alphinsert(output, line);
+    }
+    alphlist_cstring(output);
   }
 
   // Before parent can exit, shared memory must be freed and unlinked
