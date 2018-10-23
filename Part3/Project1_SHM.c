@@ -123,34 +123,34 @@ void* pthread_search(void* param_) {
   return (void*) search_res;
 }
 
-void moveLines(char** newlineList, char** keyList) {
-  int size = 1;  //  Size to iterate by
-  int new_shm = 0;  // Pointer to next available spot in shm for overwriting
-  char* current_newline = newlineList;  // Pointer to current place in newlineList
-  char* current_key = keyList;
-  char* next_newline = current_newline+size;
-  char* next_key = current_key+size;
-  while(current_newline != NULL) {
-    if (current_key > next_newline) {
-      //  Key was not found in this line
-    } else {
+size_t moveLines(char* shm, const search_result* resLists, size_t filesize) {
+  char** keyList = resLists->keys;
+  char** newlineList = resLists->newlines;
+
+  int shm_i = 0;  // Pointer to next available spot in shm for overwriting
+  char *current_newline, *next_newline;  // Pointer to current and next places in newlineList
+  // while(current_newline != NULL) {
+  int key_i = 0;
+  for (size_t ln_i = 0; ln_i < resLists->newlines_n; ++ln_i) {
+    current_newline = newlineList[ln_i];
+    next_newline = (ln_i != resLists->newlines_n + 1) ? newlineList[ln_i+1] : &shm[filesize];
+    for (; keyList[key_i] <= current_newline; ++key_i);  // Do nothing while it's out of the range
+    if (keyList[key_i] <= next_newline) {
       //  Key was found in this line
-      //  Loop to find all instances
-      while(current_key < next_newline) {
-        current_key = next_key;
-        next_key = next_key+size;
-      }
+
       //  Move line into shm to be sent to parent
-      newlineList[new_shm] = current_newline;
+          printf("DBG\n");
+      size_t linesize = next_newline - current_newline;
+      printf("DBG: (max: %zu) %zu, %zu to %zu,  %zu\n", &shm[filesize], &shm[shm_i], current_newline, next_newline, linesize);
+      memmove(&shm[shm_i], current_newline, linesize);
+          printf("DBG2\n");
       //  Update pointer to next available spot in shm
-      new_shm = new_shm+size;
+      shm_i += linesize;
     }
-    //  Go to the next line
-    current_newline = next_newline;
-    next_newline = next_newline+size;
   }
   //  Append \0
-  newlineList[new_shm] = "\0";
+  newlineList[shm_i] = "\0";
+  return shm_i;
 }
 
 int main(int argc, char* argv[]) {
@@ -262,15 +262,16 @@ int main(int argc, char* argv[]) {
     size_t keys_i = 0, newlines_i = 0;
     for (size_t tnum = 0; tnum < NTHREADS; ++tnum) {
       search_result *curr = results[tnum];
-      memcpy(result.keys + keys_i, curr->keys, curr->keys_n);
+      memcpy(result.keys + keys_i, curr->keys, curr->keys_n * sizeof(char*));
       keys_i += curr->keys_n;
-      memcpy(result.newlines + newlines_i, curr->newlines, curr->newlines_n);
+      memcpy(result.newlines + newlines_i, curr->newlines, curr->newlines_n * sizeof(char*));
       newlines_i += curr->newlines_n;
       del_search_result(curr);
       free(curr);
     }
     free(results);
 
+    moveLines(shm, &result, filesize);
     del_search_result(&result);  // TODO operate on result before destroying it
 
     DEBUG("done writing\n");
