@@ -32,27 +32,28 @@ void error(const char *msg) {  // fn for detecting errors
 typedef struct {
   size_t id;
   char *start, *stop;
+  const char *key;
 } pthread_params;
 
 typedef struct stack stack;
 struct stack {
   stack *next;
-  char val;
+  char *val;
 };
 
-stack mkstack(char val) {
+stack mkstack(char *val) {
   stack stk;
   stk.next = NULL;
   stk.val = val;
   return stk;
 }
 
-char* stack_arr(const stack *head, const size_t n) {
+char** stack_arr(const stack *head, const size_t n) {
   if (n == 0) {
     return NULL;
   }
-  char *arr = malloc(n * sizeof(char) + 1);
-  arr[n-1] = '\0';
+  char **arr = malloc((n + 1) * sizeof(char*));
+  arr[n] = NULL;
   const stack *curr = head;
   for (size_t i = 0; i < n; ++i) {
     arr[i] = curr->val;
@@ -71,23 +72,55 @@ void del_stack(stack *head) {
   }
 }
 
+typedef struct {
+  char** keys;
+  size_t keys_n;
+  char** newlines;
+  size_t newlines_n;
+} search_result;
+
+void del_search_result(search_result *res) {
+  free(res->keys);
+  free(res->newlines);
+}
+
 void* pthread_search(void* param_) {
   pthread_params* param = (pthread_params*) param_;
-  stack pre_head = mkstack(0),
-        *tail = &pre_head;
-  size_t n = 0;
-  for (char *i = param->start; i < param->stop; ++i) {
-    if (((int)i % 2) == 0) {  // TODO condition should be location of keys (and another stack for newlines)
-      tail->next = malloc(sizeof(stack));
-      *tail->next = mkstack(*i);  // TODO this should actually be a stack of pointers
-      tail = tail->next;
-      ++n;
+
+  stack keystk_prehead = mkstack(NULL),
+        *keystk_tail = &keystk_prehead;
+  size_t keystk_n = 0;
+
+  stack lnstk_prehead = mkstack(NULL),
+        *lnstk_tail = &lnstk_prehead;
+  size_t lnstk_n = 0;
+
+  size_t segment_len = param->stop - param->start;
+  for (size_t i = 1; i < segment_len-1; ++i) {
+    // Exclude boundary values because those are accounted for in overlap
+    char* curr = param->start + i;
+    if (*curr == '\n') {
+      lnstk_tail->next = malloc(sizeof(stack));
+      *lnstk_tail->next = mkstack(curr);
+      lnstk_tail = lnstk_tail->next;
+      ++lnstk_n;
+    }
+    else if (indexcontains(param->start, param->key, segment_len, i)) {  // TODO condition should be location of keys (and another stack for newlines)
+      keystk_tail->next = malloc(sizeof(stack));
+      *keystk_tail->next = mkstack(curr);
+      keystk_tail = keystk_tail->next;
+      ++keystk_n;
     }
   }
 
-  char *arr = stack_arr(pre_head.next, n);
-  del_stack(pre_head.next);
-  pthread_exit((void*) arr);
+  search_result *search_res = malloc(sizeof(search_result));
+  search_res->keys = stack_arr(keystk_prehead.next, keystk_n);
+  search_res->keys_n = keystk_n;
+  search_res->newlines = stack_arr(lnstk_prehead.next, lnstk_n);
+  search_res->newlines_n = lnstk_n;
+  del_stack(keystk_prehead.next);
+  del_stack(lnstk_prehead.next);
+  return (void*) search_res;
 }
 
 int main(int argc, char* argv[]) {
@@ -109,7 +142,7 @@ int main(int argc, char* argv[]) {
   int t;
 
   const char *memname = "part3";  // possibly incorporate file path here and / or line 27?
-  const size_t region_size = sizeof(size_t) + filesize; // sysconf(_SC_PAGE_SIZE);  // configures size of mem
+  const size_t region_size = sizeof(size_t) + filesize + 1; // sysconf(_SC_PAGE_SIZE);  // configures size of mem
 
   int fd = shm_open(memname, O_CREAT | O_RDWR, 0666);  // creates a new shared mem object with read/write access, returns a file descriptor
   if (fd == -1)
@@ -131,6 +164,7 @@ int main(int argc, char* argv[]) {
   *shm_size = filesize;
 
   fread(shm, sizeof(char), filesize, fp);  // Read file into shared memory
+  shm[filesize] = '\0';
   fclose(fp);
 
   pid_t pid = fork();  // create a child process
@@ -154,14 +188,16 @@ int main(int argc, char* argv[]) {
     pthread_t thread_ids[NTHREADS];
     pthread_params params[NTHREADS];
 
-    size_t section_size = (filesize + keylen * MAX(0, NTHREADS - 1)) / NTHREADS;
-    size_t partial_size = section_size - keylen;
+    size_t overlap_size = keylen + 2;  // +2 so we can test that key instance is alone
+    size_t section_size = (filesize + overlap_size * MAX(0, NTHREADS - 1)) / NTHREADS;
+    size_t partial_size = section_size - overlap_size;
 
     char* start = shm;
     for (size_t tnum = 0; tnum < NTHREADS; ++tnum) {
       params[tnum].id = tnum;
       params[tnum].start = start;
       params[tnum].stop = (tnum == NTHREADS - 1) ? shm + filesize : start + section_size;
+      params[tnum].key = key;  // does not copy
       start += partial_size;
 
       t = pthread_create(&thread_ids[tnum], &attr, pthread_search, &params[tnum]);
@@ -173,19 +209,40 @@ int main(int argc, char* argv[]) {
     if (t != 0)
       error("pthread_attr_destroy");
 
-    void *res;
+    search_result** results = malloc(NTHREADS * sizeof(search_result*));
+    size_t keys_n = 0, newlines_n = 0;
     for (size_t tnum = 0; tnum < NTHREADS; ++tnum) {
       DEBUG("Joining %zu\n", tnum);
+      void *res;
       t = pthread_join(thread_ids[tnum], &res);
       if (t != 0)
         error("pthread_join");
 
-      printf("Return '%s'\n", (char*)res);
-      // TODO deal with res
-      free(res);      /* Free memory allocated by thread */
+      search_result* res_ptr = (search_result*) res;
+      results[tnum] = res_ptr;
+      keys_n += res_ptr->keys_n;
+      newlines_n += res_ptr->newlines_n;
     }
+    search_result result;
+    result.keys = malloc(keys_n * sizeof(char*));
+    result.keys_n = keys_n;
+    result.newlines = malloc(newlines_n * sizeof(char*));
+    result.newlines_n = newlines_n;
 
-    shm[0] = '?';  // some random data to be written
+    size_t keys_i = 0, newlines_i = 0;
+    for (size_t tnum = 0; tnum < NTHREADS; ++tnum) {
+      search_result *curr = results[tnum];
+      memcpy(result.keys + keys_i, curr->keys, curr->keys_n);
+      keys_i += curr->keys_n;
+      memcpy(result.newlines + newlines_i, curr->newlines, curr->newlines_n);
+      newlines_i += curr->newlines_n;
+      del_search_result(curr);
+      free(curr);
+    }
+    free(results);
+
+    del_search_result(&result);  // TODO operate on result before destroying it
+
     DEBUG("done writing\n");
     exit(0);
   } else {  // parent

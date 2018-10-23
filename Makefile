@@ -4,7 +4,7 @@ UTIL:=$(INCLUDE)/util
 COMM:=$(CURDIR)/common
 PARTS:=Part1 Part2 Part3
 MKDIRS:=bin
-CFLAGS:=-I$(INCLUDE) -Wall -Wextra -pedantic -Werror=deprecated-declarations
+CFLAGS:=-I$(INCLUDE) -Wall -Wextra -pedantic -Werror=deprecated-declarations -g
 CXXFLAGS:=$(CFLAGS) -std=c++11
 SAMPLE:=$(BIN)/sample
 UNAME:=$(shell uname)
