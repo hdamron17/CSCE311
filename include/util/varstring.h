@@ -190,7 +190,7 @@ size_t alphsize(const alphlist *alist_ptr) {
   for (alphlistnode *node = alist_ptr->head; node != NULL; node = node->next) {
     size += node->n + 1;  // Plus 1 for newline
   }
-  return size - 1;  // Exclude final null terminator
+  return (size > 0) ? size - 1 : 0;  // Exclude final null terminator if present
 }
 
 char* alphlist_cstring(const alphlist *alist_ptr) {
@@ -201,7 +201,7 @@ char* alphlist_cstring(const alphlist *alist_ptr) {
     cstr[i+node->n] = '\n';
     i += node->n + 1;
   }
-  cstr[i-1] = '\0';
+  cstr[size-1] = '\0';
   return cstr;
 }
 

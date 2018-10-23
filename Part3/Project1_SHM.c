@@ -16,15 +16,15 @@
 #include <pthread.h>
 
 #include "util/strcontains.h"
-#include "../include/util/varstring.h"
+#include "util/varstring.h"
 
 #define NTHREADS 4
 
 #define MAX(x, y) ((x > y) ? x : y)
 
-#define DEBUG(...) if (debug) {printf("~%s ", (pid == 0 ? "C" : "P")); printf(__VA_ARGS__);}
-#define DEBUG_(...) if (debug) {printf(__VA_ARGS__);}
-bool debug = true;
+#define DEBUG_(c, ...) if (debug) {printf("~%s ", c); printf(__VA_ARGS__);}
+#define DEBUG(...) DEBUG_((pid == 0 ? "C" : "P"), __VA_ARGS__)
+bool debug = false;
 
 void error(const char *msg) {  // fn for detecting errors
   perror(msg);
@@ -131,30 +131,33 @@ size_t moveLines(char* shm, const search_result* resLists, size_t filesize) {
   size_t keys_n = resLists->keys_n;
   size_t ln_n = resLists->newlines_n;
 
+  DEBUG_("C", "Num keys: %zu, newlines: %zu\n", keys_n, ln_n);
+  DEBUG_("C", "Key loc: %zu, Newline loc: %zu\n", keyList[0] - shm, newlineList[0] - shm);
+
   int shm_i = 0;  // Pointer to next available spot in shm for overwriting
-  char *current_newline, *next_newline;  // Pointer to current and next places in newlineList
-  // while(current_newline != NULL) {
+  char *curr_start, *next_newline;  // Pointer to current and next places in newlineList
   size_t key_i = 0;
   for (size_t i = 0; i < ln_n + 1; ++i) {
-    DEBUG_("~C Newline %zu of %zu\n", i, ln_n+1);
+    DEBUG_("C", "Newline %zu of %zu\n", i+1, ln_n+1);
     size_t ln_i = i - 1;
-    current_newline = (i > 0) ? newlineList[ln_i] : shm - 1;  // Newline index or before start of shm if i=0
-    next_newline = (ln_i != ln_n + 1) ? newlineList[ln_i+1] : &shm[filesize];  // Next index or end of shm if i+1 > ln_n
+    curr_start = (i > 0) ? newlineList[ln_i] + 1 : shm;  // Newline index + 1 or before start of shm if i=0
+    next_newline = (ln_i != ln_n - 1) ? newlineList[ln_i+1] : &shm[filesize];  // Next index or end of shm if i+1 > ln_n
+    DEBUG_("C", "Searching for key in (%zu, %zu)\n", curr_start - shm, next_newline - shm);
 
-    for (; key_i < keys_n && keyList[key_i] <= current_newline; ++key_i);  // Do nothing while it's out of the range
+    for (; key_i < keys_n && keyList[key_i] < curr_start; ++key_i);  // Do nothing while it's out of the range
     if (key_i >= keys_n)
       break;  // No more keys so no more sentences are necessary
     if (keyList[key_i] <= next_newline) {
       //  Key was found in this line
 
       //  Move line into shm to be sent to parent
-      size_t linesize = next_newline - current_newline;
+      size_t linesize = next_newline - curr_start + 1;
       if (debug) {
-        DEBUG_("~C Copying \'");
-        fwrite(current_newline + 1, sizeof(char), linesize, stdout);
+        DEBUG_("C", "Copying [%zu, %zu]\'", curr_start - shm, linesize);
+        fwrite(curr_start, sizeof(char), linesize, stdout);
         printf("\'\n");
       }
-      memmove(&shm[shm_i], current_newline + 1, linesize);
+      memmove(&shm[shm_i], curr_start, linesize);
       //  Update pointer to next available spot in shm
       shm_i += linesize;
     }
