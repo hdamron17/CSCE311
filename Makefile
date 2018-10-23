@@ -1,13 +1,15 @@
 BIN:=$(CURDIR)/bin
 INCLUDE:=$(CURDIR)/include
 UTIL:=$(INCLUDE)/util
-COMM:=$(CURDIR)/common
+SRC:=$(CURDIR)/src
 PARTS:=Part1 Part2 Part3
 MKDIRS:=bin
 CFLAGS:=-I$(INCLUDE) -Wall -Wextra -pedantic -Werror=deprecated-declarations -g
-CXXFLAGS:=$(CFLAGS) -std=c++11
-SAMPLE:=$(BIN)/sample
 UNAME:=$(shell uname)
+
+TEST:=$(CURDIR)/test
+TESTPROG:=$(TEST)/test.sh
+EXECS:=$(TEST)/sample.py $(foreach part, $(PARTS), $(BIN)/$(part))
 
 ifeq ($(UNAME), Darwin)  # MacOS doesn't need -lrt
   LRT=
@@ -15,24 +17,21 @@ else
   LRT=-lrt
 endif
 
-export BIN UTIL COMM CFLAGS CXXFLAGS UNAME LRT
+all: $(PARTS)
 
-all: $(PARTS) sample
+HDR=$(UTIL)/strcontains.h $(UTIL)/varstring.h
 
-Part1: $(BIN)/part1
-$(BIN)/part1: $(COMM)/base.c $(UTIL)/strcontains.h $(UTIL)/varstring.h | $(MKDIRS)
+Part1: $(BIN)/Part1
+$(BIN)/Part1: $(SRC)/Parts12.c $(HDR) | $(MKDIRS)
 	$(CC) $(CFLAGS) -DPART1 $< -o $@
 
-Part2: $(BIN)/part2
-$(BIN)/part2: $(COMM)/base.c $(UTIL)/strcontains.h $(UTIL)/varstring.h | $(MKDIRS)
+Part2: $(BIN)/Part2
+$(BIN)/Part2: $(SRC)/Parts12.c $(HDR) | $(MKDIRS)
 	$(CC) $(CFLAGS) -DPART2 $< -o $@
 
-Part3: | $(MKDIRS)
-	make -C $@
-
-sample: $(SAMPLE)
-$(SAMPLE): readFileData.c
-	$(CC) $(CFLAGS) $^ -o $@
+Part3: $(BIN)/Part3
+$(BIN)/Part3: $(SRC)/Part3.c $(HDR) | $(MKDIRS)
+	$(CC) $(CFLAGS) -pthread $< $(LRT) -o $@
 
 $(MKDIRS):
 	@mkdir -p $(MKDIRS)
@@ -41,6 +40,7 @@ clean:
 	@rm -rf $(MKDIRS)
 
 test:
-	make -C test
+	@echo "======"
+	@cd $(TEST); $(foreach exec, $(EXECS), $(TESTPROG) $(exec) &&) true
 
 .PHONY: all clean $(PARTS) test
