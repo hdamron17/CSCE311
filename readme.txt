@@ -19,9 +19,11 @@ Team Contributions:
   Graham McDonald worked on:
     Unix Domain Socket
     One method in Shared Memory
+    Documentation
   Reed Segars worked on:
     File IO
     Shared Memory
+    Documentation
 
 Description:
   All Parts

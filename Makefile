@@ -6,6 +6,7 @@ PARTS:=Part1 Part2 Part3
 MKDIRS:=bin
 CFLAGS:=-I$(INCLUDE) -Wall -Wextra -pedantic -Werror=deprecated-declarations -g
 UNAME:=$(shell uname)
+BSIZE:=20
 
 TEST:=$(CURDIR)/test
 TESTPROG:=$(TEST)/test.sh
@@ -23,11 +24,11 @@ HDR=$(UTIL)/strcontains.h $(UTIL)/varstring.h
 
 Part1: $(BIN)/Part1
 $(BIN)/Part1: $(SRC)/Parts12.c $(HDR) | $(MKDIRS)
-	$(CC) $(CFLAGS) -DPART1 $< -o $@
+	$(CC) $(CFLAGS) -DPART1 -BSIZE=$(BSIZE) $< -o $@
 
 Part2: $(BIN)/Part2
 $(BIN)/Part2: $(SRC)/Parts12.c $(HDR) | $(MKDIRS)
-	$(CC) $(CFLAGS) -DPART2 $< -o $@
+	$(CC) $(CFLAGS) -DPART2 -BSIZE=$(BSIZE) $< -o $@
 
 Part3: $(BIN)/Part3
 $(BIN)/Part3: $(SRC)/Part3.c $(HDR) | $(MKDIRS)
