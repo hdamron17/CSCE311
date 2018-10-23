@@ -23,6 +23,7 @@
 #define MAX(x, y) ((x > y) ? x : y)
 
 #define DEBUG(...) if (debug) {printf("~%s ", (pid == 0 ? "C" : "P")); printf(__VA_ARGS__);}
+#define DEBUG_(...) if (debug) {printf(__VA_ARGS__);}
 bool debug = true;
 
 void error(const char *msg) {  // fn for detecting errors
@@ -127,30 +128,39 @@ void* pthread_search(void* param_) {
 size_t moveLines(char* shm, const search_result* resLists, size_t filesize) {
   char** keyList = resLists->keys;
   char** newlineList = resLists->newlines;
+  size_t keys_n = resLists->keys_n;
+  size_t ln_n = resLists->newlines_n;
 
   int shm_i = 0;  // Pointer to next available spot in shm for overwriting
   char *current_newline, *next_newline;  // Pointer to current and next places in newlineList
   // while(current_newline != NULL) {
-  int key_i = 0;
-  for (size_t ln_i = 0; ln_i < resLists->newlines_n; ++ln_i) {
-    current_newline = newlineList[ln_i];
-    next_newline = (ln_i != resLists->newlines_n + 1) ? newlineList[ln_i+1] : &shm[filesize];
-    for (; keyList[key_i] <= current_newline; ++key_i);  // Do nothing while it's out of the range
+  size_t key_i = 0;
+  for (size_t i = 0; i < ln_n + 1; ++i) {
+    DEBUG_("~C Newline %zu of %zu\n", i, ln_n+1);
+    size_t ln_i = i - 1;
+    current_newline = (i > 0) ? newlineList[ln_i] : shm - 1;  // Newline index or before start of shm if i=0
+    next_newline = (ln_i != ln_n + 1) ? newlineList[ln_i+1] : &shm[filesize];  // Next index or end of shm if i+1 > ln_n
+
+    for (; key_i < keys_n && keyList[key_i] <= current_newline; ++key_i);  // Do nothing while it's out of the range
+    if (key_i >= keys_n)
+      break;  // No more keys so no more sentences are necessary
     if (keyList[key_i] <= next_newline) {
       //  Key was found in this line
 
       //  Move line into shm to be sent to parent
-          printf("DBG\n");
       size_t linesize = next_newline - current_newline;
-      printf("DBG: (max: %zu) %zu, %zu to %zu,  %zu\n", &shm[filesize], &shm[shm_i], current_newline, next_newline, linesize);
-      memmove(&shm[shm_i], current_newline, linesize);
-          printf("DBG2\n");
+      if (debug) {
+        DEBUG_("~C Copying \'");
+        fwrite(current_newline + 1, sizeof(char), linesize, stdout);
+        printf("\'\n");
+      }
+      memmove(&shm[shm_i], current_newline + 1, linesize);
       //  Update pointer to next available spot in shm
       shm_i += linesize;
     }
   }
   //  Append \0
-  newlineList[shm_i] = "\0";
+  shm[shm_i] = '\0';
   return shm_i;
 }
 
@@ -220,17 +230,20 @@ int main(int argc, char* argv[]) {
     pthread_params params[NTHREADS];
 
     size_t overlap_size = keylen + 2;  // +2 so we can test that key instance is alone
-    size_t section_size = (filesize + overlap_size * MAX(0, NTHREADS - 1)) / NTHREADS;
+    size_t section_size = (*shm_size + overlap_size * MAX(0, NTHREADS - 1)) / NTHREADS;
     size_t partial_size = section_size - overlap_size;
 
+    DEBUG("File has bounds [0, %zu]\n", *shm_size);
     char* start = shm;
     for (size_t tnum = 0; tnum < NTHREADS; ++tnum) {
       params[tnum].id = tnum;
       params[tnum].start = start;
-      params[tnum].stop = (tnum == NTHREADS - 1) ? shm + filesize : start + section_size;
+      params[tnum].stop = (tnum == NTHREADS - 1) ? shm + (*shm_size) : start + section_size;
       params[tnum].key = key;  // does not copy
       start += partial_size;
 
+      DEBUG("Starting thread %zu with bounds [%zu, %zu]\n", tnum, \
+          (params[tnum].start - shm), (params[tnum].stop - shm));
       t = pthread_create(&thread_ids[tnum], &attr, pthread_search, &params[tnum]);
       if (t != 0)
           error("pthread_create");
@@ -272,8 +285,9 @@ int main(int argc, char* argv[]) {
     }
     free(results);
 
-    moveLines(shm, &result, filesize);
-    del_search_result(&result);  // TODO operate on result before destroying it
+    size_t new_shm_size = moveLines(shm, &result, *shm_size);
+    *shm_size = new_shm_size;  // So the parent knows how far to read
+    del_search_result(&result);
 
     DEBUG("done writing\n");
     exit(0);
@@ -284,19 +298,29 @@ int main(int argc, char* argv[]) {
       printf("waitpid() returned error code %d\n", t);
     }
     DEBUG("done waiting\n");
-    // TODO: This is where the parent will print the lines that contain the string********************************
-    fwrite(shm, sizeof(char), filesize, stdout);
-    // printf("child wrote %#lx\n", *(u_long *) ptr);  // parent reads what child wrote
+    // fwrite(shm, sizeof(char), *shm_size, stdout);
+    // // printf("child wrote %#lx\n", *(u_long *) ptr);  // parent reads what child wrote
 
-    const alphlist* output = alphlist();
-    while(shm != NULL) {
-      const char* line;
-      while(*(shm) != "\n") {
-        line = charptr;
-      }
-      alphinsert(output, line);
+    alphlist output = mkalphlist();
+    char* linestart = shm;
+    char* shm_end = shm + (*shm_size);
+    char* lineend = memchr(linestart, '\n', shm_end - linestart);
+    while(lineend) {
+      const size_t linelen = lineend - linestart;  // Minus 1 to exclude newline
+      DEBUG("Adding line with bounds [%zu, %zu)\n", linestart - shm, linelen);
+      alphinsertn(&output, linestart, linelen);
+
+      linestart = lineend + 1;
+      lineend = memchr(linestart, '\n', shm_end - linestart);
     }
-    alphlist_cstring(output);
+    // alphinsert(&outout, linestart);  // Last line which ends in \0
+    char* output_cstr = alphlist_cstring(&output);
+    size_t output_size = alphsize(&output);
+    DEBUG("Output has size %zu\n", output_size);
+    fwrite(output_cstr, sizeof(char), output_size, stdout);
+    printf("\n");
+    free(output_cstr);
+    delalphlist(&output);
   }
 
   // Before parent can exit, shared memory must be freed and unlinked

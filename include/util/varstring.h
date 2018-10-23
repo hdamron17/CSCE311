@@ -102,14 +102,17 @@ struct alphlistnode {
   alphlistnode *next;
 };
 
-alphlistnode mkalphlistnode(const char* str) {
+alphlistnode mkalphlistnoden(const char* str, const size_t strsize) {
   alphlistnode alistnode;
   alistnode.next = NULL;
-  size_t strsize = strlen(str);
   alistnode.str = malloc(strsize);
   strncpy(alistnode.str, str, strsize);
   alistnode.n = strsize;
   return alistnode;
+}
+
+alphlistnode mkalphlistnode(const char* str) {
+  return mkalphlistnoden(str, strlen(str));
 }
 
 typedef struct {
@@ -154,9 +157,9 @@ bool alph_leq(const alphlistnode *str1, const alphlistnode *str2) {
     return false;
 }
 
-void alphinsert(alphlist *alist_ptr, const char* to_insert) {
+void alphinsertn(alphlist *alist_ptr, const char* to_insert, const size_t strsize) {
   alphlistnode *newnode = malloc(sizeof(alphlistnode));
-  *newnode = mkalphlistnode(to_insert);
+  *newnode = mkalphlistnoden(to_insert, strsize);
   if (!alist_ptr->head || alph_leq(newnode, alist_ptr->head)) {
     newnode->next = alist_ptr->head;
     alist_ptr->head = newnode;
@@ -170,6 +173,10 @@ void alphinsert(alphlist *alist_ptr, const char* to_insert) {
     prev->next = newnode;
     newnode->next = node;
   }
+}
+
+void alphinsert(alphlist *alist_ptr, const char* to_insert) {
+  alphinsertn(alist_ptr, to_insert, strlen(to_insert));
 }
 
 void alphvinsert(alphlist *alist_ptr, const vstring* to_insert) {
