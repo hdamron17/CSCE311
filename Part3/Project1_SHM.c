@@ -90,6 +90,36 @@ void* pthread_search(void* param_) {
   pthread_exit((void*) arr);
 }
 
+void moveLines(char** newlineList, char** keyList) {
+  int size = 1;  //  Size to iterate by
+  int new_shm = 0;  // Pointer to next available spot in shm for overwriting
+  char* current_newline = newlineList;  // Pointer to current place in newlineList
+  char* current_key = keyList;
+  char* next_newline = current_newline+size;
+  char* next_key = current_key+size;
+  while(current_newline != NULL) {
+    if (current_key > next_newline) {
+      //  Key was not found in this line
+    } else {
+      //  Key was found in this line
+      //  Loop to find all instances
+      while(current_key < next_newline) {
+        current_key = next_key;
+        next_key = next_key+size;
+      }
+      //  Move line into shm to be sent to parent
+      newlineList[new_shm] = current_newline;
+      //  Update pointer to next available spot in shm
+      new_shm = new_shm+size;
+    }
+    //  Go to the next line
+    current_newline = next_newline;
+    next_newline = next_newline+size;
+  }
+  //  Append \0
+  newlineList[new_shm] = "\0";
+}
+
 int main(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Usage: %s <inputfile> <key>\n", argv[0]);
